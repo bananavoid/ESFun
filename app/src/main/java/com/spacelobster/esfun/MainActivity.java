@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private float ypos = -1;
 
     private Object3D object = null;
+    private Object3D overlay = null;
     private int fps = 0;
 
     private Light sun = null;
@@ -195,16 +196,17 @@ public class MainActivity extends AppCompatActivity {
 	private void applyImageToPlane(Bitmap bitmap) {
 		TextureManager.getInstance().addTexture("textureTatoo", new Texture(bitmap, true));
 
-		Object3D img = Primitives.getPlane(64, 1);
-		img.setBillboarding(true);
-		img.setTexture("textureTatoo");
-		img.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD);
-		img.strip();
-		//img.setTransparency(5);
+		overlay = Primitives.getPlane(64, 1);
+		//overlay.setBillboarding(true);
+		overlay.setTexture("textureTatoo");
+		//overlay.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD);
+		overlay.strip();
 
-		img.build();
+		//overlay.setTransparency(100);
 
-		world1.addObject(img);
+		overlay.build();
+
+		world1.addObject(overlay);
 	}
 
 	private void copy(Object src) {
@@ -323,6 +325,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+	        gl.glEnable(GL10.GL_BLEND);
+	        gl.glBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_ALPHA);
         }
 
         public void onDrawFrame(GL10 gl) {
