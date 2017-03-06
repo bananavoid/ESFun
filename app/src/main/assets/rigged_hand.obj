@@ -1,6 +1,6 @@
 # Blender v2.74 (sub 0) OBJ File: 'Rigged Hand.blend'
 # www.blender.org
-mtllib Rigged Hand.mtl
+mtllib rigged_hand.mtl
 o Cube.000_Cube.017
 v 0.843964 1.461635 0.102966
 v 0.821171 1.458314 0.095684
