@@ -1,16 +1,8 @@
 package com.spacelobster.esfun;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
-
-import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.egl.EGLDisplay;
-import javax.microedition.khronos.opengles.GL10;
 
 import android.Manifest;
 import android.content.Intent;
@@ -18,45 +10,41 @@ import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
 import android.graphics.*;
 import android.net.Uri;
-import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.widget.FrameLayout;
+import android.view.ScaleGestureDetector;
 
+import com.nex3z.togglebuttongroup.ToggleButtonGroup;
 import com.spacelobster.esfun.databinding.ActivityMainBinding;
-import com.threed.jpct.Camera;
-import com.threed.jpct.FrameBuffer;
-import com.threed.jpct.Light;
-import com.threed.jpct.Loader;
-import com.threed.jpct.Logger;
-import com.threed.jpct.Matrix;
 import com.threed.jpct.Object3D;
 import com.threed.jpct.Primitives;
-import com.threed.jpct.RGBColor;
-import com.threed.jpct.SimpleVector;
 import com.threed.jpct.Texture;
 import com.threed.jpct.TextureManager;
-import com.threed.jpct.World;
-import com.threed.jpct.util.BitmapHelper;
-import com.threed.jpct.util.MemoryHelper;
 
 public class MainActivity extends AppCompatActivity {
 
 	private static final int PICK_IMAGE_REQUEST = 11;
 	private static final int PERMISSIONS_REQUEST = 12;
+	private static final int MODE_BODY = 8;
+	private static final int MODE_IMAGE = 9;
+
+	private int mCurrentMode = MODE_BODY;
 
 	private BodyPartRenderer mBodyRenderer;
 	private ActivityMainBinding mBinding;
 
     private float xpos = -1;
     private float ypos = -1;
+	private float mScaleFactor;
+	private ScaleGestureDetector mScaleDetector;
 
 	protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,6 +55,18 @@ public class MainActivity extends AppCompatActivity {
 
 	    List<String> choices = Arrays.asList("M", "I");
 	    mBinding.singleSelectionBtns.setButtons(choices);
+
+		mScaleDetector = new ScaleGestureDetector(this, new ScaleListener());
+
+		mBinding.singleSelectionBtns.setOnCheckedChangeListener(new ToggleButtonGroup.OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChange(int position, boolean isChecked) {
+				if (isChecked && position == 0)
+					mCurrentMode = MODE_BODY;
+				else if (isChecked && position == 1)
+					mCurrentMode = MODE_IMAGE;
+			}
+		});
     }
 
     @Override
@@ -180,6 +180,8 @@ public class MainActivity extends AppCompatActivity {
 
     public boolean onTouchEvent(MotionEvent me) {
 
+	    mScaleDetector.onTouchEvent(me);
+
         if (me.getAction() == MotionEvent.ACTION_DOWN) {
             xpos = me.getX();
             ypos = me.getY();
@@ -190,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
             xpos = -1;
             ypos = -1;
             mBodyRenderer.setLightTurn(0);
-            mBodyRenderer.setmLightTurnUp(0);
+            mBodyRenderer.setLightTurnUp(0);
             return true;
         }
 
@@ -202,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
             ypos = me.getY();
 
             mBodyRenderer.setLightTurn(xd / -100f);
-            mBodyRenderer.setmLightTurnUp(yd / -100f);
+            mBodyRenderer.setLightTurnUp(yd / -100f);
             return true;
         }
 
@@ -214,4 +216,19 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onTouchEvent(me);
     }
+
+	private class ScaleListener
+			extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+		@Override
+		public boolean onScale(ScaleGestureDetector detector) {
+			mScaleFactor *= detector.getScaleFactor();
+
+			// Don't let the object get too small or too large.
+			mScaleFactor = Math.max(0.01f, Math.min(mScaleFactor, 0.2f));
+			mBodyRenderer.setCameraFOV(mScaleFactor);
+			Log.d("SCALE", "factor: " + mScaleFactor);
+
+			return true;
+		}
+	}
 }

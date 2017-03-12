@@ -2,6 +2,9 @@ package com.spacelobster.esfun;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.util.Log;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 
 import com.threed.jpct.Camera;
 import com.threed.jpct.FrameBuffer;
@@ -40,6 +43,8 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 	private int fps = 0;
 
 	private long time = System.currentTimeMillis();
+	private float mScaleFactor;
+	private ScaleGestureDetector mScaleDetector;
 
 	public BodyPartRenderer(Context context, String modelFileName) {
 		mContext = context;
@@ -58,53 +63,32 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 
 		mFrameBuffer = new FrameBuffer(gl, w, h);
 
-		//if (master == null) {
+		TextureManager.getInstance().addTexture("textureSkin",
+				new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.skin)),
+						64, 64), true));
+		try {
+			mObject = loadModel(mThingName, 10);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
 
-			//world1 = new World();
-
-//		mWorld.setAmbientLight(20, 20, 20);
-//
-//			mLight = new Light(mWorld);
-//			sun.setIntensity(250, 250, 250);
-
-			TextureManager.getInstance().addTexture("textureSkin",
-					new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.skin)),
-							64, 64), true));
-//	            TextureManager.getInstance().addTexture("textureTatoo", new Texture(BitmapHelper.rescale(BitmapHelper.convert(getResources().getDrawable(R.drawable.tatoo)), 64, 64), true));
-//
-//
-			try {
-				mObject = loadModel(mThingName, 10);
-			} catch (UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-//	            object = Primitives.getCylinder(10);
-			mObject.calcTextureWrapSpherical();
-			mObject.setTexture("textureSkin");
-			//object.setAdditionalColor(23, 45, 90);
+		mObject.calcTextureWrapSpherical();
+		mObject.setTexture("textureSkin");
 		mObject.strip();
 		mObject.build();
 
-			mWorld.addObject(mObject);
+		mWorld.addObject(mObject);
 
-			Camera cam = mWorld.getCamera();
-			cam.moveCamera(Camera.CAMERA_MOVEOUT, 50);
-			cam.lookAt(mObject.getTransformedCenter());
+		mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 50);
+		mWorld.getCamera().lookAt(mObject.getTransformedCenter());
+		mScaleFactor = mWorld.getCamera().getFOV();
 
-			SimpleVector sv = new SimpleVector();
-			sv.set(mObject.getTransformedCenter());
-			sv.y -= 100;
-			sv.z -= 100;
-			mLight.setPosition(sv);
-			MemoryHelper.compact();
-
-//			if (master == null) {
-//				Logger.log("Saving master Activity!");
-//				master = MainActivity.this;
-//			}
-		//}
+		SimpleVector sv = new SimpleVector();
+		sv.set(mObject.getTransformedCenter());
+		sv.y -= 100;
+		sv.z -= 100;
+		mLight.setPosition(sv);
+		MemoryHelper.compact();
 	}
 
 	public void onSurfaceCreated(GL10 gl, EGLConfig config) {
@@ -129,6 +113,7 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 			}
 		}
 
+		//mWorld.getCamera().setFOV(mScaleFactor);
 		mFrameBuffer.clear(mBackColor);
 		mWorld.renderScene(mFrameBuffer);
 		mWorld.draw(mFrameBuffer);
@@ -168,7 +153,16 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 		mLightTurn = turn;
 	}
 
-	public void setmLightTurnUp(float turnUp) {
+	public void setLightTurnUp(float turnUp) {
 		mLightTurnUp = turnUp;
+	}
+
+	public void setCameraFOV(float fov) {
+		if (fov < mScaleFactor)
+			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 1);
+		else if (fov > mScaleFactor)
+			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEIN, 1);
+
+		mScaleFactor = fov;
 	}
 }
