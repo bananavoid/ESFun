@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
 	private int mCurrentMode = MODE_BODY;
 
 	private BodyPartRenderer mBodyRenderer;
+//	private ImageRenderer mImageRenderer;
 	private ActivityMainBinding mBinding;
 
     private float xpos = -1;
@@ -51,7 +52,10 @@ public class MainActivity extends AppCompatActivity {
 	    mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
 
 		mBodyRenderer = new BodyPartRenderer(this, "hand.3ds");
+		//mImageRenderer = new ImageRenderer(this);
+
 		mBinding.surfaceView.setRenderer(mBodyRenderer);
+		//mBinding.imageSurfaceView.setRenderer(mImageRenderer);
 
 	    List<String> choices = Arrays.asList("M", "I");
 	    mBinding.singleSelectionBtns.setButtons(choices);
@@ -165,17 +169,18 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	private void applyImageToPlane(Bitmap bitmap) {
+		//mImageRenderer.addObject(bitmap);
 		TextureManager.getInstance().addTexture("textureTatoo", new Texture(bitmap, true));
 
-		Object3D overlay = Primitives.getPlane(30, 0.5f);
-		overlay.setBillboarding(true);
-		overlay.setTexture("textureTatoo");
-		overlay.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD);
-		overlay.strip();
+		Object3D mObject = Primitives.getPlane(30, 0.5f);
+		mObject.setBillboarding(true);
+		mObject.setTexture("textureTatoo");
+		mObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD);
+		mObject.strip();
 
-		overlay.build();
+		mObject.build();
 
-		//world1.addObject(overlay);
+		mBodyRenderer.addObjectToThisWorld(mObject);
 	}
 
     public boolean onTouchEvent(MotionEvent me) {

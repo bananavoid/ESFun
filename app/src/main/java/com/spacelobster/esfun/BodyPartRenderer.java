@@ -1,6 +1,7 @@
 package com.spacelobster.esfun;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -44,7 +45,6 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 
 	private long time = System.currentTimeMillis();
 	private float mScaleFactor;
-	private ScaleGestureDetector mScaleDetector;
 
 	public BodyPartRenderer(Context context, String modelFileName) {
 		mContext = context;
@@ -53,49 +53,31 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 		mLight = new Light(mWorld);
 		mLight.setIntensity(250, 250, 250);
 
+		TextureManager.getInstance().addTexture("textureSkin",
+				new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.skin)),
+						64, 64), true));
+
 		mThingName = modelFileName;
+
+		createObject();
 	}
 
+	@Override
 	public void onSurfaceChanged(GL10 gl, int w, int h) {
 		if (mFrameBuffer != null) {
 			mFrameBuffer.dispose();
 		}
 
 		mFrameBuffer = new FrameBuffer(gl, w, h);
-
-		TextureManager.getInstance().addTexture("textureSkin",
-				new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.skin)),
-						64, 64), true));
-		try {
-			mObject = loadModel(mThingName, 10);
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-
-		mObject.calcTextureWrapSpherical();
-		mObject.setTexture("textureSkin");
-		mObject.strip();
-		mObject.build();
-
-		mWorld.addObject(mObject);
-
-		mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 50);
-		mWorld.getCamera().lookAt(mObject.getTransformedCenter());
-		mScaleFactor = mWorld.getCamera().getFOV();
-
-		SimpleVector sv = new SimpleVector();
-		sv.set(mObject.getTransformedCenter());
-		sv.y -= 100;
-		sv.z -= 100;
-		mLight.setPosition(sv);
-		MemoryHelper.compact();
 	}
 
+	@Override
 	public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 		gl.glEnable(GL10.GL_BLEND);
 		gl.glBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_ALPHA);
 	}
 
+	@Override
 	public void onDrawFrame(GL10 gl) {
 		//if (object == null) return;
 
@@ -125,6 +107,32 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 			time = System.currentTimeMillis();
 		}
 		fps++;
+	}
+
+	private void createObject() {
+		try {
+			mObject = loadModel(mThingName, 10);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+
+		mObject.calcTextureWrapSpherical();
+		mObject.setTexture("textureSkin");
+		mObject.strip();
+		mObject.build();
+
+		mWorld.addObject(mObject);
+
+		mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 40);
+		mWorld.getCamera().lookAt(mObject.getTransformedCenter());
+		mScaleFactor = mWorld.getCamera().getFOV();
+
+		SimpleVector sv = new SimpleVector();
+		sv.set(mObject.getTransformedCenter());
+		sv.y -= 100;
+		sv.z -= 100;
+		mLight.setPosition(sv);
+		MemoryHelper.compact();
 	}
 
 	private Object3D loadModel(String filename, float scale) throws UnsupportedEncodingException {
@@ -164,5 +172,9 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEIN, 1);
 
 		mScaleFactor = fov;
+	}
+
+	public void addObjectToThisWorld(Object3D object) {
+		mWorld.addObject(object);
 	}
 }
