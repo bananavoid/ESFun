@@ -187,6 +187,9 @@ public class MainActivity extends AppCompatActivity {
 
 	    mScaleDetector.onTouchEvent(me);
 
+	    if (mCurrentMode == MODE_IMAGE)
+	    	return false;
+
         if (me.getAction() == MotionEvent.ACTION_DOWN) {
             xpos = me.getX();
             ypos = me.getY();
@@ -228,10 +231,13 @@ public class MainActivity extends AppCompatActivity {
 		public boolean onScale(ScaleGestureDetector detector) {
 			mScaleFactor *= detector.getScaleFactor();
 
-			// Don't let the object get too small or too large.
-			mScaleFactor = Math.max(0.01f, Math.min(mScaleFactor, 0.2f));
-			mBodyRenderer.setCameraFOV(mScaleFactor);
-			Log.d("SCALE", "factor: " + mScaleFactor);
+			if (mCurrentMode == MODE_BODY) {
+				mScaleFactor = Math.max(0.01f, Math.min(mScaleFactor, 0.2f));
+				mBodyRenderer.moveCamera(mScaleFactor);
+			} else if (mCurrentMode == MODE_IMAGE) {
+				mScaleFactor = Math.max(0.01f, Math.min(mScaleFactor, 5.2f));
+				mBodyRenderer.moveImageObject(mScaleFactor);
+			}
 
 			return true;
 		}

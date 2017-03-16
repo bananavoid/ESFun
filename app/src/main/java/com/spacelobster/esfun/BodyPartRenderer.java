@@ -36,6 +36,7 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 	private RGBColor mBackColor = new RGBColor(50, 50, 100);
 	private Light mLight = null;
 	private Object3D mObject = null;
+	private Object3D mImageObject = null;
 	private String mThingName = null;
 
 	private float mLightTurn = 0;
@@ -165,7 +166,7 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 		mLightTurnUp = turnUp;
 	}
 
-	public void setCameraFOV(float fov) {
+	public void moveCamera(float fov) {
 		if (fov < mScaleFactor)
 			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 1);
 		else if (fov > mScaleFactor)
@@ -174,7 +175,18 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 		mScaleFactor = fov;
 	}
 
+	public void moveImageObject(float fov) {
+		Log.d("IMG MOVE", "move: " + fov);
+		if (fov < mScaleFactor)
+			mImageObject.translate(0, 0, 0.2f);
+		else if (fov > mScaleFactor)
+			mImageObject.translate(0, 0, -0.2f);
+
+		mScaleFactor = fov;
+	}
+
 	public void addObjectToThisWorld(Object3D object) {
-		mWorld.addObject(object);
+		mImageObject = object;
+		mWorld.addObject(mImageObject);
 	}
 }
