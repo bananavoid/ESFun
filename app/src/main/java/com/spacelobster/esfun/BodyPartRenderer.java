@@ -9,14 +9,20 @@ import android.view.ScaleGestureDetector;
 
 import com.threed.jpct.Camera;
 import com.threed.jpct.FrameBuffer;
+import com.threed.jpct.GenericVertexController;
+import com.threed.jpct.Interact2D;
 import com.threed.jpct.Light;
 import com.threed.jpct.Loader;
 import com.threed.jpct.Logger;
 import com.threed.jpct.Matrix;
+import com.threed.jpct.Mesh;
 import com.threed.jpct.Object3D;
+import com.threed.jpct.PolygonManager;
+import com.threed.jpct.Primitives;
 import com.threed.jpct.RGBColor;
 import com.threed.jpct.SimpleVector;
 import com.threed.jpct.Texture;
+import com.threed.jpct.TextureInfo;
 import com.threed.jpct.TextureManager;
 import com.threed.jpct.World;
 import com.threed.jpct.util.BitmapHelper;
@@ -25,6 +31,7 @@ import com.threed.jpct.util.MemoryHelper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -56,6 +63,10 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 
 		TextureManager.getInstance().addTexture("textureSkin",
 				new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.skin)),
+						64, 64), true));
+
+		TextureManager.getInstance().addTexture("textureSkinDark",
+				new Texture(BitmapHelper.rescale(BitmapHelper.convert(mContext.getResources().getDrawable(R.drawable.skin_dark)),
 						64, 64), true));
 
 		mThingName = modelFileName;
@@ -103,7 +114,7 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 		mFrameBuffer.display();
 
 		if (System.currentTimeMillis() - time >= 1000) {
-			Logger.log(fps + "fps");
+			//Logger.log(fps + "fps");
 			fps = 0;
 			time = System.currentTimeMillis();
 		}
@@ -118,10 +129,20 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 		}
 
 		mObject.calcTextureWrapSpherical();
+		//mObject.setTextureMatrix(new Matrix());
 		mObject.setTexture("textureSkin");
-		mObject.strip();
-		mObject.build();
+		//mObject.strip();
 
+//		mObject.getMesh().setVertexController(new GenericVertexController() {
+//			@Override
+//			public void apply() {
+//				if (mImageObject != null) {
+//					Mesh imgMesh = mImageObject.getMesh();
+//				}
+//			}
+//		}, true);
+
+		mObject.build();
 		mWorld.addObject(mObject);
 
 		mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 40);
@@ -168,15 +189,14 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 
 	public void moveCamera(float fov) {
 		if (fov < mScaleFactor)
-			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 1);
+			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEOUT, 0.5f);
 		else if (fov > mScaleFactor)
-			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEIN, 1);
+			mWorld.getCamera().moveCamera(Camera.CAMERA_MOVEIN, 0.5f);
 
 		mScaleFactor = fov;
 	}
 
 	public void moveImageObject(float fov) {
-		Log.d("IMG MOVE", "move: " + fov);
 		if (fov < mScaleFactor)
 			mImageObject.translate(0, 0, 0.2f);
 		else if (fov > mScaleFactor)
@@ -188,5 +208,104 @@ public class BodyPartRenderer implements GLSurfaceView.Renderer {
 	public void addObjectToThisWorld(Object3D object) {
 		mImageObject = object;
 		mWorld.addObject(mImageObject);
+	}
+
+	public void mergeObjects() {
+		//tileTexture(mObject);
+		//mergeImageToTexture();
+		setPoligonTextureOnPlace();
+	}
+
+	private void tileTexture(Object3D obj) {
+		PolygonManager pmObj = obj.getPolygonManager();
+		PolygonManager pmTatoo = mImageObject.getPolygonManager();
+
+		int end = pmTatoo.getMaxPolygonID();
+
+		for (int i = 0; i < end; i++) {
+			SimpleVector uv0 = pmTatoo.getTextureUV(i, 0);
+			SimpleVector uv1 = pmTatoo.getTextureUV(i, 1);
+			SimpleVector uv2 = pmTatoo.getTextureUV(i, 2);
+
+
+			if (uv0 == null || uv1 == null || uv2 == null)
+				return;
+
+			//int t = pmTatoo.getPolygonTexture(i);
+//			TextureInfo ti = new TextureInfo(
+//					t,
+//					uv0.x, uv0.y,
+//					uv1.x, uv1.y,
+//					uv2.x, uv2.y
+//			);
+			//pmObj.setPolygonTexture(i, ti);
+		}
+
+		obj.build();
+		obj.touch();
+	}
+
+	private ArrayList<Integer> setPoligonTextureOnPlace() {
+		float[] imgBounds = mImageObject.getMesh().getBoundingBox();
+		SimpleVector translation = new SimpleVector();
+		mImageObject.getTranslation(translation);
+
+		Log.d("MRG", "image translation: " + translation.x + " " + translation.y + " " + translation.z);
+
+		ArrayList<Integer> chosenIds = new ArrayList<>();
+
+		SimpleVector minVector = Interact2D.reproject2D3DWS(
+				mWorld.getCamera(),
+				mFrameBuffer,
+				(int)imgBounds[0],
+				(int)imgBounds[2],
+				imgBounds[4]
+		);
+		SimpleVector maxVector = Interact2D.reproject2D3DWS(
+				mWorld.getCamera(),
+				mFrameBuffer,
+				(int)imgBounds[1],
+				(int)imgBounds[3],
+				imgBounds[5]
+		);
+
+		Log.d("MRG", "bounds min: " + imgBounds[0] + " " + imgBounds[2] + " " + imgBounds[4]);
+		Log.d("MRG", "bounds max: " + imgBounds[1] + " " + imgBounds[3] + " " + imgBounds[5]);
+
+
+		PolygonManager pmObj = mObject.getPolygonManager();
+		int end = pmObj.getMaxPolygonID();
+
+		for (int i = 0; i < end; ++i) {
+			SimpleVector v0 = pmObj.getTransformedVertex(i, 0);
+			SimpleVector v1 = pmObj.getTransformedVertex(i, 1);
+			SimpleVector v2 = pmObj.getTransformedVertex(i, 2);
+
+			if (
+				v0.x < imgBounds[1] &&
+				v0.x > imgBounds[0] &&
+				v0.y < imgBounds[3] &&
+				v0.y > imgBounds[2] &&
+				v0.z <= 0 &&
+				v1.x < imgBounds[1] &&
+				v1.x > imgBounds[0] &&
+				v1.y < imgBounds[3] &&
+				v1.y > imgBounds[2] &&
+				v1.z <= 0 &&
+						v2.x < imgBounds[1] &&
+						v2.x > imgBounds[0] &&
+						v2.y < imgBounds[3] &&
+						v2.y > imgBounds[2] &&
+						v2.z <= 0
+					)
+			{
+				chosenIds.add(i);
+				pmObj.setPolygonTexture(i, TextureManager.getInstance().getTextureID("textureSkinDark"));
+			}
+		}
+
+		Log.d("MRG", "chosen ones: " + chosenIds.size());
+
+		return chosenIds;
 	}
 }

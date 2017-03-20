@@ -15,7 +15,6 @@ import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,6 +23,7 @@ import android.view.ScaleGestureDetector;
 
 import com.nex3z.togglebuttongroup.ToggleButtonGroup;
 import com.spacelobster.esfun.databinding.ActivityMainBinding;
+import com.threed.jpct.Config;
 import com.threed.jpct.Object3D;
 import com.threed.jpct.Primitives;
 import com.threed.jpct.Texture;
@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 	private int mCurrentMode = MODE_BODY;
 
 	private BodyPartRenderer mBodyRenderer;
-//	private ImageRenderer mImageRenderer;
+	private PlaneRenderer mPlaneRenderer;
 	private ActivityMainBinding mBinding;
 
     private float xpos = -1;
@@ -51,11 +51,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 	    mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
 
+//      jpct performance increasing - to check
+//		Config.doSorting=false;
+//		Config.alwaysSort=false;
+//		Config.spanBasedHsr=false;
+//		Config.useFrustumCulling=false;
+
 		mBodyRenderer = new BodyPartRenderer(this, "hand.3ds");
-		//mImageRenderer = new ImageRenderer(this);
+		//mPlaneRenderer = new PlaneRenderer(this);
 
 		mBinding.surfaceView.setRenderer(mBodyRenderer);
-		//mBinding.imageSurfaceView.setRenderer(mImageRenderer);
+		//mBinding.imageSurfaceView.setRenderer(mPlaneRenderer);
 
 	    List<String> choices = Arrays.asList("M", "I");
 	    mBinding.singleSelectionBtns.setButtons(choices);
@@ -95,6 +101,9 @@ public class MainActivity extends AppCompatActivity {
 		switch (item.getItemId()) {
 			case R.id.select_img:
 				selectImage();
+				return true;
+			case R.id.merge_textures:
+				mBodyRenderer.mergeObjects();
 				return true;
 			default:
 				return super.onOptionsItemSelected(item);
@@ -165,18 +174,16 @@ public class MainActivity extends AppCompatActivity {
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.main, menu);
 		return true;
-
 	}
 
 	private void applyImageToPlane(Bitmap bitmap) {
-		//mImageRenderer.addObject(bitmap);
 		TextureManager.getInstance().addTexture("textureTatoo", new Texture(bitmap, true));
 
-		Object3D mObject = Primitives.getPlane(30, 0.5f);
+		Object3D mObject = Primitives.getPlane(30, 1f);
 		mObject.setBillboarding(true);
 		mObject.setTexture("textureTatoo");
 		mObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD);
-		mObject.strip();
+		//mObject.strip();
 
 		mObject.build();
 
